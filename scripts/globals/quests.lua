@@ -31,43 +31,62 @@ local check_enum =
     onZoneIn = 6
 }
 
-local function handleQuestVar(entity, quest, varname, val, caller, get)
-    local ret = {}
-    if not quest then
-        ret.message = " cannot find quest (caller: "..caller..")"
-    else
-        local var, vartype;
-        if quest.vars.main == varname and varname then
-            var = quest.vars.main
-            vartype = dsp.quests.enums.var_types.char_var
-        elseif var = quest.vars.additional[varname] then
-            vartype = var.type
-        end
+local function validateQuest(entity, quest, varname, val, get)
+    local msg = ""
+    local prefix = "[Quest Parameter Error] "
 
-        if not var then
-            ret.message = " unable to find "..varname.." for quest: "..quest.name.." (logid: "..quest.log_id..")"
-        else
-            if vartype == dsp.quests.enums.var_types.char_var then
-                if get then
-                    ret.val = entity:getVar(varname)
-                else
-                    entity:setVar(varname, val)
-                end
-            elseif vartype == dsp.quests.enums.var_types.local_var then
-                if get then
-                    ret.val = entity:getLocalVar(varname)
-                else
-                    entity:setLocalVar(varname, val)
-                end
-            elseif vartype == dsp.quests.enums.var_types.server_var then
-                if get then
-                    ret.val = GetServerVariable(varname)
-                else
-                    SetServerVariable(varname, val)
-                end
+    if entity == nil then
+        msg = prefix .. "entity cannot be nil"
+    elseif quest == nil then
+        msg = prefix .. "quest cannot be nil"
+    elseif varname == nil or varname == '' then
+        msg = prefix .. "varname cannot be nil or empty"
+    end
+
+    return msg
+end
+
+local function handleQuestVar(entity, quest, varname, val, get)
+    local ret = {}
+    local validateMsg = validateQuest(entity, quest, varname, val, get)
+    if validateMsg ~= '' then
+        ret.message = validateMsg
+        return ret
+    end
+
+    local var, vartype;
+    if quest.vars.main == varname then
+        var = quest.vars.main
+        vartype = dsp.quests.enums.var_types.char_var
+    else
+        var = quest.vars.additional[varname]
+        vartype = var.type
+    end
+
+    if not var then
+        ret.message = " unable to find "..varname.." for quest: "..quest.name.." (logid: "..quest.log_id..")"
+    else
+        if vartype == dsp.quests.enums.var_types.char_var then
+            if get then
+                ret.val = entity:getVar(varname)
+            else
+                entity:setVar(varname, val)
+            end
+        elseif vartype == dsp.quests.enums.var_types.local_var then
+            if get then
+                ret.val = entity:getLocalVar(varname)
+            else
+                entity:setLocalVar(varname, val)
+            end
+        elseif vartype == dsp.quests.enums.var_types.server_var then
+            if get then
+                ret.val = GetServerVariable(varname)
+            else
+                SetServerVariable(varname, val)
             end
         end
     end
+
     return ret
 end
 
@@ -78,17 +97,17 @@ local function error(entity, message)
     print("[Quest Error] "..entity:getName()..": "..message)
 end
 
-dsp.quests.setVar = function(entity, quest, varname, val, caller)
+dsp.quests.setVar = function(entity, quest, varname, val)
     local message = "dsp.quests.setVar "
-    local ret = handleQuestVar(entity, quest, varname, val, caller, false)
+    local ret = handleQuestVar(entity, quest, varname, val, false)
     if ret.message then
         error(message..ret.message)
     end
 end
 
-dsp.quests.getVar = function(entity, quest, varname, val, caller)
+dsp.quests.getVar = function(entity, quest, varname, val)
     local message = "dsp.quests.getVar "
-    local ret = handleQuestVar(entity, quest, varname, val, caller, true)
+    local ret = handleQuestVar(entity, quest, varname, val, true)
     if ret.message then
         error(message..ret.message)
     else
