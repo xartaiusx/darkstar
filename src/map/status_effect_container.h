@@ -66,7 +66,7 @@ public:
     uint8 EraseAllStatusEffect();               // erases all status effects
     EFFECT DispelStatusEffect(EFFECTFLAG flag);             // удаляем первый положительный эффект
     uint8 DispelAllStatusEffect(EFFECTFLAG flag);                // dispels all status effects
-    CStatusEffect* StealStatusEffect();             // dispels one effect and returns it
+    CStatusEffect* StealStatusEffect(EFFECTFLAG flag);             // dispels one effect and returns it
 
     CStatusEffect* GetStatusEffect(EFFECT StatusID);
     CStatusEffect* GetStatusEffect(EFFECT StatusID, uint32 SubID);
@@ -116,6 +116,7 @@ private:
 
     // void ReplaceStatusEffect(EFFECT effect); //this needs to be implemented
     void RemoveStatusEffect(uint32 id, bool silent = false);	// удаляем эффект по его номеру в контейнере
+    void RemoveStatusEffect(CStatusEffect* PEffect, bool silent = false);	// удаляем эффект по его номеру в контейнере
     void DeleteStatusEffects();
     void SetEffectParams(CStatusEffect* StatusEffect);			// устанавливаем имя эффекта
 

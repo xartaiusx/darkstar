@@ -28,16 +28,26 @@
 #include "../map.h"
 #include "itemutils.h"
 
-std::array<CItem*, MAX_ITEMID> g_pItemList;// глобальный массив указателей на игровые предметы
-std::array<DropList_t*, MAX_DROPID> g_pDropList;    // глобальный массив списков выпадающих предметов
-std::array<LootList_t*, MAX_LOOTID> g_pLootList;
+std::array<CItem*, MAX_ITEMID> g_pItemList;      // global array of pointers to game items
+std::array<DropList_t*, MAX_DROPID> g_pDropList; // global array of monster droplist items
+std::array<LootList_t*, MAX_LOOTID> g_pLootList; // global array of BCNM lootlist items
 
 CItemWeapon* PUnarmedItem;
 CItemWeapon* PUnarmedH2HItem;
 
+DropItem_t::DropItem_t(uint8 DropType, uint16 ItemID, uint16 DropRate)
+    : DropType(DropType)
+    , ItemID(ItemID)
+    , DropRate(DropRate)
+{ }
+
+DropGroup_t::DropGroup_t(uint16 GroupRate)
+    : GroupRate(GroupRate)
+{ }
+
 /************************************************************************
 *                                                                       *
-*  Собственно методы работы с глобальной коллекцией предметов           *
+*  Actually methods of working with a global collection of items        *
 *                                                                       *
 ************************************************************************/
 
@@ -46,7 +56,7 @@ namespace itemutils
 
     /************************************************************************
     *                                                                       *
-    *  Создаем пустой экземпляр предмета по ID (private метод)              *
+    *  Create an empty instance of the item by ID (private method)          *
     *                                                                       *
     ************************************************************************/
 
@@ -89,19 +99,18 @@ namespace itemutils
             return new CItemGeneral(ItemID);
         }
 
-
         return nullptr;
     }
 
     /************************************************************************
     *                                                                       *
-    *  Создаем новый экземпляр предмета по ID                               *
+    *  Create a new copy of the item ID                                     *
     *                                                                       *
     ************************************************************************/
 
     CItem* GetItem(uint16 ItemID)
     {
-        if( (ItemID == 0xFFFF) )
+        if (ItemID == 0xFFFF)
         {
             return new CItemCurrency(ItemID);
         }
@@ -149,7 +158,7 @@ namespace itemutils
 
     /************************************************************************
     *                                                                       *
-    *  Создаем копию предмета                                               *
+    *  Create a copy of the item                                            *
     *                                                                       *
     ************************************************************************/
 
@@ -161,7 +170,7 @@ namespace itemutils
         {
             return new CItemWeapon(*((CItemWeapon*)PItem));
         }
-        if (PItem->isType(ITEM_ARMOR))
+        if (PItem->isType(ITEM_EQUIPMENT))
         {
             return new CItemArmor(*((CItemArmor*)PItem));
         }
@@ -194,7 +203,7 @@ namespace itemutils
 
     /************************************************************************
     *                                                                       *
-    *  Получаем указатель на предмет из коллекции (только для чтения)       *
+    *  Get a pointer to an item (read-only)                                 *
     *                                                                       *
     ************************************************************************/
 
@@ -226,7 +235,7 @@ namespace itemutils
 
     /************************************************************************
     *                                                                       *
-    *  Список выпадаемых из монстров предметов                              *
+    *  Get the monsters item drop list                                      *
     *                                                                       *
     ************************************************************************/
 
@@ -258,7 +267,7 @@ namespace itemutils
 
     /************************************************************************
     *                                                                       *
-    *  Загружаем базу предметов                                             *
+    *  Load the items                                                       *
     *                                                                       *
     ************************************************************************/
 
@@ -312,7 +321,7 @@ namespace itemutils
                 "p.element "        // 38
             "FROM item_basic AS b "
             "LEFT JOIN item_usable AS u USING (itemId) "
-            "LEFT JOIN item_armor  AS a USING (itemId) "
+            "LEFT JOIN item_equipment  AS a USING (itemId) "
             "LEFT JOIN item_weapon AS w USING (itemId) "
             "LEFT JOIN item_furnishing AS f USING (itemId) "
             "LEFT JOIN item_puppet AS p USING (itemId) "
@@ -356,7 +365,7 @@ namespace itemutils
                         ((CItemPuppet*)PItem)->setEquipSlot(Sql_GetUIntData(SqlHandle,37));
                         ((CItemPuppet*)PItem)->setElementSlots(Sql_GetUIntData(SqlHandle,38));
                     }
-                    if (PItem->isType(ITEM_ARMOR))
+                    if (PItem->isType(ITEM_EQUIPMENT))
                     {
                         ((CItemArmor*)PItem)->setReqLvl(Sql_GetUIntData(SqlHandle, 15));
                         ((CItemArmor*)PItem)->setILvl(Sql_GetUIntData(SqlHandle,16));
@@ -397,7 +406,7 @@ namespace itemutils
             }
         }
 
-        ret = Sql_Query(SqlHandle,"SELECT itemId, modId, value FROM item_mods WHERE itemId IN (SELECT itemId FROM item_basic LEFT JOIN item_armor USING (itemId))");
+        ret = Sql_Query(SqlHandle,"SELECT itemId, modId, value FROM item_mods WHERE itemId IN (SELECT itemId FROM item_basic LEFT JOIN item_equipment USING (itemId))");
 
         if( ret != SQL_ERROR && Sql_NumRows(SqlHandle) != 0)
         {
@@ -407,14 +416,14 @@ namespace itemutils
                 Mod modID  = static_cast<Mod>(Sql_GetUIntData(SqlHandle,1));
                 int16  value  = (int16) Sql_GetIntData (SqlHandle,2);
 
-                if ((g_pItemList[ItemID] != nullptr) && g_pItemList[ItemID]->isType(ITEM_ARMOR))
+                if ((g_pItemList[ItemID] != nullptr) && g_pItemList[ItemID]->isType(ITEM_EQUIPMENT))
                 {
                     ((CItemArmor*)g_pItemList[ItemID])->addModifier(CModifier(modID,value));
                 }
             }
         }
 
-        ret = Sql_Query(SqlHandle, "SELECT itemId, modId, value, petType FROM item_mods_pet WHERE itemId IN (SELECT itemId FROM item_basic LEFT JOIN item_armor USING (itemId))");
+        ret = Sql_Query(SqlHandle, "SELECT itemId, modId, value, petType FROM item_mods_pet WHERE itemId IN (SELECT itemId FROM item_basic LEFT JOIN item_equipment USING (itemId))");
 
         if (ret != SQL_ERROR && Sql_NumRows(SqlHandle) != 0)
         {
@@ -425,14 +434,14 @@ namespace itemutils
                 int16 value = (int16)Sql_GetIntData(SqlHandle, 2);
                 PetModType petType = static_cast<PetModType>(Sql_GetIntData(SqlHandle, 3));
 
-                if ((g_pItemList[ItemID]) && g_pItemList[ItemID]->isType(ITEM_ARMOR))
+                if ((g_pItemList[ItemID]) && g_pItemList[ItemID]->isType(ITEM_EQUIPMENT))
                 {
                     ((CItemArmor*)g_pItemList[ItemID])->addPetModifier(CPetModifier(modID, petType, value));
                 }
             }
         }
 
-        ret = Sql_Query(SqlHandle,"SELECT itemId, modId, value, latentId, latentParam FROM item_latents WHERE itemId IN (SELECT itemId FROM item_basic LEFT JOIN item_armor USING (itemId))");
+        ret = Sql_Query(SqlHandle,"SELECT itemId, modId, value, latentId, latentParam FROM item_latents WHERE itemId IN (SELECT itemId FROM item_basic LEFT JOIN item_equipment USING (itemId))");
 
         if( ret != SQL_ERROR && Sql_NumRows(SqlHandle) != 0)
         {
@@ -444,7 +453,7 @@ namespace itemutils
                 uint16 latentId = (uint16) Sql_GetIntData(SqlHandle,3);
                 uint16 latentParam = (uint16) Sql_GetIntData(SqlHandle,4);
 
-                if ((g_pItemList[ItemID] != nullptr) && g_pItemList[ItemID]->isType(ITEM_ARMOR))
+                if ((g_pItemList[ItemID] != nullptr) && g_pItemList[ItemID]->isType(ITEM_EQUIPMENT))
                 {
                     ((CItemArmor*)g_pItemList[ItemID])->addLatent((LATENT)latentId, latentParam, modID, value);
                 }
@@ -454,7 +463,7 @@ namespace itemutils
 
     /************************************************************************
     *                                                                       *
-    *  Загружаем списки предметов, выпадающих из монстров                   *
+    *  load lists of items monsters drop                                    *
     *                                                                       *
     ************************************************************************/
 
@@ -473,56 +482,45 @@ namespace itemutils
                     g_pDropList[DropID] = new DropList_t;
                 }
 
-                DropItem_t DropItem;
+                DropList_t* dropList = g_pDropList[DropID];
 
-                DropItem.ItemID  = (uint16)Sql_GetIntData(SqlHandle,1);
-                DropItem.DropType = (uint8)Sql_GetIntData(SqlHandle,2);
-                DropItem.DropRate = (uint16)Sql_GetIntData(SqlHandle,3);
-                DropItem.GroupId = (uint8)Sql_GetIntData(SqlHandle,4);
-                DropItem.GroupRate = (uint16)Sql_GetIntData(SqlHandle,5);
+                uint16 ItemID = (uint16)Sql_GetIntData(SqlHandle, 1);
+                uint8 DropType = (uint8)Sql_GetIntData(SqlHandle, 2);
+                uint16 DropRate = (uint16)Sql_GetIntData(SqlHandle, 3);
 
-                g_pDropList[DropID]->push_back(DropItem);
+                if (DropType == DROP_GROUPED)
+                {
+                    uint8 GroupId = (uint8)Sql_GetIntData(SqlHandle, 4);
+                    uint16 GroupRate = (uint16)Sql_GetIntData(SqlHandle, 5);
+                    while (GroupId >= dropList->Groups.size())
+                    {
+                        dropList->Groups.emplace_back(GroupRate);
+                    }
+                    dropList->Groups[GroupId].Items.emplace_back(DropType, ItemID, DropRate);
+                }
+                else
+                {
+                    dropList->Items.emplace_back(DropType, ItemID, DropRate);
+                }
             }
         }
     }
 
-
     /************************************************************************
     *                                                                       *
-    *  Handles loot from BCNM chests and other NPCs that drop things into   *
+    *  Handles loot from NPCs that drop things into                         *
     *  the loot pool instead of adding them directly to the inventory       *
     *                                                                       *
     ************************************************************************/
 
     void LoadLootList()
     {
-        int32 ret = Sql_Query(SqlHandle, "SELECT LootDropId, itemId, rolls, lootGroupId FROM bcnm_loot WHERE LootDropId < %u;", MAX_LOOTID);
 
-        if( ret != SQL_ERROR && Sql_NumRows(SqlHandle) != 0)
-        {
-            while(Sql_NextRow(SqlHandle) == SQL_SUCCESS)
-            {
-                uint16 LootID  = (uint16)Sql_GetUIntData(SqlHandle,0);
-
-                if (g_pLootList[LootID] == 0)
-                {
-                    g_pLootList[LootID] = new LootList_t;
-                }
-
-                LootItem_t LootItem;
-
-                LootItem.ItemID  = (uint16)Sql_GetIntData(SqlHandle,1);
-                LootItem.Rolls = (uint16)Sql_GetIntData(SqlHandle,2);
-                LootItem.LootGroupId = (uint8)Sql_GetIntData(SqlHandle,3);
-
-                g_pLootList[LootID]->push_back(LootItem);
-            }
-        }
     }
 
     /************************************************************************
     *                                                                       *
-    *  Инициализация системы игровых предметов                              *
+    *  Initialization of the  game objects             bbbb                 *
     *                                                                       *
     ************************************************************************/
 
@@ -535,19 +533,19 @@ namespace itemutils
         PUnarmedItem = new CItemWeapon(0);
 
         PUnarmedItem->setDmgType(DAMAGE_NONE);
-        PUnarmedItem->setSkillType(SKILL_NON);
+        PUnarmedItem->setSkillType(SKILL_NONE);
         PUnarmedItem->setDamage(3);
 
         PUnarmedH2HItem = new CItemWeapon(0);
 
         PUnarmedH2HItem->setDmgType(DAMAGE_HTH);
-        PUnarmedH2HItem->setSkillType(SKILL_H2H);
+        PUnarmedH2HItem->setSkillType(SKILL_HAND_TO_HAND);
         PUnarmedH2HItem->setDamage(3);
     }
 
     /************************************************************************
     *                                                                       *
-    *  Освобождаем базу предметов (метод только для "галочки")              *
+    *  Release the list of items                                            *
     *                                                                       *
     ************************************************************************/
 

@@ -1,17 +1,17 @@
 -----------------------------------
 -- Area: Dynamis Bastok
---  NPC: Vanguard Beasttender + Vanguard's Scorpion
+--  MOB: Vanguard_Beasttender
+-----------------------------------
+mixins =
+{
+    require("scripts/mixins/dynamis_beastmen"),
+    require("scripts/mixins/job_special")
+}
 -----------------------------------
 
 function onMobSpawn(mob)
-end;
-
-function onMobEngaged(mob,target)
-end;
+    mob:setLocalVar("dynamis_currency", 1455)
+end
 
 function onMobDeath(mob, player, isKiller)
-end;
-
-function onMobDespawn(mob)
-    DespawnMob(mob:getID() + 1);
-end;
+end

@@ -1,17 +1,17 @@
 -----------------------------------
 -- Area: Dynamis Bastok
---  NPC: SMN Vanguard Undertaker + Vanguard's Avatar
+--  MOB: Vanguard_Undertaker
+-----------------------------------
+mixins =
+{
+    require("scripts/mixins/dynamis_beastmen"),
+    require("scripts/mixins/job_special")
+}
 -----------------------------------
 
 function onMobSpawn(mob)
-end;
-
-function onMobEngaged(mob,target)
-end;
+    mob:setLocalVar("dynamis_currency", 1455)
+end
 
 function onMobDeath(mob, player, isKiller)
-end;
-
-function onMobDespawn(mob)
-    DespawnMob(mob:getID() + 1);
-end;
+end
